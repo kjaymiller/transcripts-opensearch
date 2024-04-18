@@ -1,4 +1,7 @@
+arrow
+python-dotenv
 typer
-python-slugify
 python-frontmatter
-gazpacho
+opensearch-py
+langchain
+sentence-transformers

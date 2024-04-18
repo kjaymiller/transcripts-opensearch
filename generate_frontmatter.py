@@ -1,7 +1,9 @@
 import pathlib
+
 import frontmatter
 from gazpacho import get, Soup
 
+DATE_FORMAT = r"MMMM[\s+]D[\w+,\s+]YYYY"
 
 def append_frontmatter_to_file(filename:pathlib.Path) -> None:
     """Prepend frontmatter to a file."""
@@ -10,7 +12,8 @@ def append_frontmatter_to_file(filename:pathlib.Path) -> None:
     soup = Soup(web_soup)
     description = soup.find("meta", {"name": "description"}, mode="first").attrs["content"]
     title = soup.find("title").text.split(" - ")[1]
-    pub_date = soup.find("p", {"class": "pubdate"}).text.split("\n")[0]
+    _pub_date_text = soup.find("p", {"class": "pubdate"}).text.split("\n")[0]
+    pub_date = arrow.get(_pub_date_text, DATE_FORMAT).date()
     episode_frontmatter = frontmatter.Post(filename.read_text(), pub_date=pub_date, title=title, description=description)
     filename.write_text(frontmatter.dumps(episode_frontmatter))
 
