@@ -1,15 +1,14 @@
 import json
-import uuid
 import os
 import pathlib
-import frontmatter
-from opensearchpy import OpenSearch, helpers
-from rich.progress import track
-from dotenv import load_dotenv
+import uuid
 
 import arrow
-
-from create_embeddings import create_embeddings
+import frontmatter
+from dotenv import load_dotenv
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from opensearchpy import OpenSearch, helpers
+from rich.progress import track
 
 load_dotenv()
 
@@ -25,11 +24,7 @@ index_mapping = {
         "content_vector": {
             "type": "knn_vector",
             "dimension": 768,
-            "method": {
-                "name": "hnsw",
-                "space_type": "l2",
-                "engine": "faiss"
-            },
+            "method": {"name": "hnsw", "space_type": "l2", "engine": "faiss"},
         },
         "pub_date": {"type": "date"},
     }
@@ -38,8 +33,14 @@ index_mapping = {
 fmt = r"MMMM[\s+]D[\w+,\s+]YYYY"
 
 
+def create_embeddings(content: str) -> list[int]:
+    """Generate embeddings for a document using HuggingFace's transformers library."""
+    embeddings = HuggingFaceEmbeddings()
+    return embeddings.embed_documents([content])
+
+
 def _load_data(directory: pathlib.Path, index_name: str):
-    for file in track(directory.iterdir(), description=f"Indexing transcripts:"):
+    for file in track(directory.iterdir(), description="Indexing transcripts:"):
         post = frontmatter.loads(file.read_text())
 
         yield {
@@ -53,20 +54,42 @@ def _load_data(directory: pathlib.Path, index_name: str):
             "pub_date": arrow.get(post["pub_date"], fmt).date().isoformat(),
         }
 
+
 def create_posts(
-        input_directory: pathlib.Path,
-        index_name:str,
-    ) -> None:
+    input_directory: pathlib.Path,
+    index_name: str,
+) -> None:
     return [post for post in _load_data(input_directory, index_name)]
-    
-if __name__ == "__main__":
-    index_name = "embedded_transcripts"
-    client.indices.create(index=index_name, body={"mappings":index_mapping}, ignore=400)
-    # posts = create_posts(
-    #     input_directory=pathlib.Path("transcripts"),
-    #     index_name=index_name,
-    # )
-    # pathlib.Path("embedded_posts.json").write_text(json.dumps(posts, indent=2))
-    posts = json.loads(pathlib.Path("embedded_posts.json").read_text())
+
+
+def posts_to_json(
+    index_name: str,
+    input_directory: pathlib.Path,
+    output_file: pathlib.Path,
+) -> None:
+    posts = create_posts(
+        input_directory=input_directory,
+        index_name=index_name,
+    )
+    output_file.write_text(json.dumps(posts, indent=2))
+
+
+def upload_to_opensearch(
+    index_name: str,
+    input_directory: pathlib.Path,
+) -> None:
+    posts = create_posts(
+        input_directory=input_directory,
+        index_name=index_name,
+    )
     response = helpers.bulk(client, posts)
-    print(response)
+    return response
+
+
+def upload_from_file(
+    output_file: pathlib.Path,
+) -> None:
+    """ "Upload a json file to opensearch"""
+    posts = json.loads(output_file.read_text())
+    response = helpers.bulk(client, posts)
+    return response
