@@ -31,9 +31,14 @@ index_mapping = {
         "url": {"type": "keyword"},
         "content": {"type": "text"},
         "content_vector": {
+            "data_type": "byte",
             "type": "knn_vector",
             "dimension": 768,
-            "method": {"name": "hnsw", "space_type": "cosinemil", "engine": "nmslib"},
+            "method": {
+                "name": "hnsw",
+                "space_type": "l2",
+                "engine": "faiss",
+          },
         },
         "pub_date": {"type": "date"},
     }
@@ -50,7 +55,7 @@ def create_embeddings(content: str) -> list[int]:
 
 def chunk_data(
         data:list[pathlib.Path],
-        chunk_size:int=64,
+        chunk_size:int=140,
         chunk_overlap:int=20,
         separators:list[str]=[".", "!", "?", "\n"]):
 
@@ -59,8 +64,8 @@ def chunk_data(
         chunk_overlap=chunk_overlap,
         separators=separators,
     )
-
     return splitter.create_documents(data)
+
 
 def load_data(directory: pathlib.Path, index_name: str):
     for file in track(directory.iterdir(), description="Indexing transcripts:"):
@@ -74,8 +79,6 @@ def load_data(directory: pathlib.Path, index_name: str):
                 "url": post["url"],
                 "pub_date": arrow.get(post["pub_date"], fmt).date().isoformat(),
             }
-        
-     
         posts = [{**base_data, **{
                 "_id": str(uuid.uuid4()),
                 "content": post_snippet.page_content,
@@ -128,5 +131,5 @@ def upload_from_file(
 
 if __name__ == "__main__":
     index_name = "embedded_transcripts"
-    client.indices.create(index=index_name, body={"mappings": index_mapping}, ignore=400)
+    client.indices.create(index=index_name, body={"settings": {"index": {"knn": True, "knn.algo_param.ef_search": 100}}, "mappings": index_mapping}, ignore=400)
     next(load_data(pathlib.Path("transcripts"), index_name))

@@ -48,7 +48,6 @@ embeddings = HuggingFaceEmbeddings()
 def knn_based_search(query:str):
 
     query_embedding = embeddings.embed_query(query)
-    print(len(query_embedding))
     res = client.search(index=INDEX_NAME, body={
         "size": 5,
         "query": {
@@ -71,7 +70,7 @@ def knn_based_search(query:str):
 
 if __name__ == "__main__":
     console = Console()
-    query = "creating rules"
+    query = "rules"
 #     match_results = match_based_search(query)
 #     console.print(f"""Match-based search results for "What are the results for '{query=}'?":
 # {match_results}""", style="bold red")
