@@ -55,7 +55,7 @@ def knn_based_search(query:str):
             "knn": {
                 "content_vector": {
                     "vector": query_embedding,
-                    "k": 5
+                    "k": 10
                 }
             }
         }
@@ -65,18 +65,17 @@ def knn_based_search(query:str):
     response = f"Number of results: {res['hits']['total']['value']}\n"
     
     for results in res["hits"]["hits"]:
-        highlights = "\n".join(results["highlight"]["content"])
-        response += f"""Title: {results["_source"]["title"]})
-Results: {highlights}
-"""
+        highlights = "\n".join(results["highlight"]["content"]) + "\n"
+        response += highlights
     return response
 
 if __name__ == "__main__":
     console = Console()
-#     match_results = match_based_search("What is Inbox Zero?")
-#     console.print(f"""Match-based search results for "What is VICE?":
+    query = "creating rules"
+#     match_results = match_based_search(query)
+#     console.print(f"""Match-based search results for "What are the results for '{query=}'?":
 # {match_results}""", style="bold red")
     
-    knn_results = knn_based_search("conduit")
-    console.print(f"""KNN-based search results for "conduit?":
+    knn_results = knn_based_search(query)
+    console.print(f"""KNN-based search results for "{query=}?":
 {knn_results}""", style="bold green")

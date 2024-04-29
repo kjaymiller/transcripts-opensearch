@@ -33,7 +33,7 @@ index_mapping = {
         "content_vector": {
             "type": "knn_vector",
             "dimension": 768,
-            "method": {"name": "hnsw", "space_type": "l2", "engine": "faiss"},
+            "method": {"name": "hnsw", "space_type": "cosinemil", "engine": "nmslib"},
         },
         "pub_date": {"type": "date"},
     }
@@ -50,8 +50,8 @@ def create_embeddings(content: str) -> list[int]:
 
 def chunk_data(
         data:list[pathlib.Path],
-        chunk_size:int=500,
-        chunk_overlap:int=40,
+        chunk_size:int=64,
+        chunk_overlap:int=20,
         separators:list[str]=[".", "!", "?", "\n"]):
 
     splitter = RecursiveCharacterTextSplitter(
